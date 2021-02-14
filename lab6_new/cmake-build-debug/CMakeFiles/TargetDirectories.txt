@@ -1,0 +1,3 @@
+D:/AssemblerProj/lab6_new/cmake-build-debug/CMakeFiles/lab6.dir
+D:/AssemblerProj/lab6_new/cmake-build-debug/CMakeFiles/edit_cache.dir
+D:/AssemblerProj/lab6_new/cmake-build-debug/CMakeFiles/rebuild_cache.dir
