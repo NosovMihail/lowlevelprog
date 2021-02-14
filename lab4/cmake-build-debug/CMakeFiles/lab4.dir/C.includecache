@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+D:/AssemblerProj/lab4/list_funk.c
+malloc.h
+-
+subsidiary_funk.h
+D:/AssemblerProj/lab4/subsidiary_funk.h
+
+D:/AssemblerProj/lab4/list_funk.h
+list_funk.c
+D:/AssemblerProj/lab4/list_funk.c
+
+D:/AssemblerProj/lab4/main.c
+stdio.h
+-
+subsidiary_funk.h
+D:/AssemblerProj/lab4/subsidiary_funk.h
+list_funk.h
+D:/AssemblerProj/lab4/list_funk.h
+
+D:/AssemblerProj/lab4/subsidiary_funk.c
+inttypes.h
+-
+stdbool.h
+-
+string.h
+-
+
+D:/AssemblerProj/lab4/subsidiary_funk.h
+subsidiary_funk.c
+D:/AssemblerProj/lab4/subsidiary_funk.c
+
