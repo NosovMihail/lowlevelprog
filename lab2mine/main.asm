@@ -9,8 +9,8 @@ extern string_length
 global _start
 
 section .data
-    reading_error_msg: db "Reading problem", 0
-	not_found_msg: db "Key_not_found", 0
+    reading_error_msg: db "Could not read message", 0
+	not_found_msg: db "No such key", 0
 
 section .text
 _start:
