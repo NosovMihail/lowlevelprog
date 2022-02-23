@@ -3,7 +3,6 @@ extern string_equals
 global find_word
 
 section .text
-; args: rdi = key string pointer, rsi = list first elem -> returns: rax = address (found) or rax = 0 (not found)
 find_word:
 	mov r8, rdi
 	.loop:
