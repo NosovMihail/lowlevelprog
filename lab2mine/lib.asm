@@ -21,28 +21,17 @@ section .text
 %define space    32 ; 0x20
 %define minus    45 ; 0x2D
 
-; args:rsi-const char *buf, rdx-size_t count
-write_to_stdout:
-    mov     rax, 1
-    mov     rdi, 1
-    syscall
-    ret
-
-write_to_stderr:
-    mov     rax, 1
-    mov     rdi, 2
-    syscall
-    ret
+section .text
+ 
+ 
 ; Принимает код возврата и завершает текущий процесс
-exit:
-    xor     rax, rax
+exit: 
     mov     rax, 60
     syscall
 
 ; Принимает указатель на нуль-терминированную строку, возвращает её длину
-; args: rdi - pointer to the start of the string -> returns: rax - string's length
 string_length:
-	xor     rax, rax
+    xor     rax, rax
 	.loop:
 		cmp     byte[rdi + rax], 0
 		je      .end
@@ -52,47 +41,43 @@ string_length:
 		ret
 
 ; Принимает указатель на нуль-терминированную строку, выводит её в stdout
-;args: rdi - pointer to the start of the string, r8 - stream
 print_string:
     xor     rax, rax
     mov     rsi, rdi
     call    string_length
     mov     rdx, rax
-
     mov     rax, 1
-    mov     rdi, r8
+    mov     rdi, 1
     syscall
-
-    xor     rax, rax
     ret
 
 ; Принимает код символа и выводит его в stdout
-; args: rdi - char itself -> Side effect
 print_char:
     xor     rax, rax
     push    rdi
     mov     rsi, rsp
     mov     rdx, 1
-    call    write_to_stdout
+    mov     rax, 1
+    mov     rdi, 1
+    syscall
     add     rsp, 8
     ret
 
 ; Переводит строку (выводит символ с кодом 0xA)
 print_newline:
-    mov     rdi, 10 ; код новой строки
+    mov     rdi, 10
 	call    print_char
     ret
 
 ; Выводит беззнаковое 8-байтовое число в десятичном формате 
 ; Совет: выделите место в стеке и храните там результаты деления
 ; Не забудьте перевести цифры в их ASCII коды.
-; args: rdi - unsigned integer itself -> Side effect
 print_uint:
     push    r12
-    mov     r12, rsp                                    
-    mov     rax, rdi                                    
+    mov     r12, rsp                                                                        
     dec     rsp
-    mov     byte[rsp], 0                                
+    mov     byte[rsp], 0
+    mov     rax, rdi                                
     .loop:
         xor     rdx, rdx
         dec     rsp
@@ -112,8 +97,7 @@ print_uint:
     pop     r12
     ret
 
-; Выводит знаковое 8-байтовое число в десятичном формате
-; args: rdi - signed integer itself ->  Side effect
+; Выводит знаковое 8-байтовое число в десятичном формате 
 print_int:
     xor     rax, rax
     mov     rax, rdi                                    
@@ -130,47 +114,43 @@ print_int:
         ret
 
 ; Принимает два указателя на нуль-терминированные строки, возвращает 1 если они равны, 0 иначе
-; args: rdi = string1 address, rsi = string2 address -> returns: rax = 1 (true) or rax = 0 (false)
 string_equals:
-        xor     rax, rax
+    xor     rax, rax
         push    r10
         push    r13
         .loop:
-            mov     r10b, byte[rsi]
-            mov     r13b, byte[rdi]
+            mov     r10b, byte[rdi]
+            mov     r13b, byte[rsi]
             inc     rsi
             inc     rdi
             cmp     r10b, r13b
             jne     .ret_zero
-            cmp     r13b, 0
+            cmp     r10b, 0
             jne     .loop
             inc     rax
        .ret_zero:
             pop     r13
             pop     r10
             ret
-            
+
 ; Читает один символ из stdin и возвращает его. Возвращает 0 если достигнут конец потока
-; EMPTY args ->  returns: rax - new char
 read_char:
+    xor rax, rax
     push    rdi
     push    rdx
     dec     rsp
-    mov     rax, 0
-    mov     rdi, 0
+    xor     rdi, rdi
     mov     rdx, 1          
     mov     rsi, rsp
     syscall
     test    rax, rax
-    je      .return
-    xor     rax, rax
+    je      .rtrn
     mov     al, [rsp]
-    .return:
+    .rtrn:
         inc     rsp
         pop     rdx
         pop     rdi
-        ret
-
+        ret 
 
 ; Принимает: адрес начала буфера, размер буфера
 ; Читает в буфер слово из stdin, пропуская пробельные символы в начале, .
@@ -179,146 +159,122 @@ read_char:
 ; При успехе возвращает адрес буфера в rax, длину слова в rdx.
 ; При неудаче возвращает 0 в rax
 ; Эта функция должна дописывать к слову нуль-терминатор
-; args: rdi - buffer address, rsi - buffer size -> returns: Right(rax - buffer address, rdx - word length) or Left(rax = 0)
+
 read_word:
-	push r14
-	push r15
-
-	xor r14, r14
-	mov r15, rsi
-
-	dec r15
-
-	.space_init_loop:
-		push rdi
-		call read_char		; Read new char (preserving rdi)
-		pop rdi
-
-		cmp al, space		; Compare with space
-		je .space_init_loop
-		cmp al, new_line	; Compare with new_line
-		je .space_init_loop
-		cmp al, tab		; Compare with tab
-		je .space_init_loop
-		cmp al, CR		; Compare with "Carruage Return"
-		je .space_init_loop
-
-		test al, al
-		jz .correct_ending
-
-	.read_word_loop:
-		mov byte[rdi + r14], al
-		inc r14
-
-		push rdi
-		call read_char		; Read new char (preserving rdi)
-		pop rdi
-
-		cmp al, space		; Compare with space
-		je .correct_ending
-		cmp al, new_line	; Compare with new_line
-		je .correct_ending
-		cmp al, tab		; Compare with tab
-		je .correct_ending
-		cmp al, CR		; Compare with "Carruage Return"
-		je .correct_ending
-		test al, al		; Compare with null
-		jz .correct_ending
-
-		cmp r14, r15		; Check if not overflown
-		je .incorrect_ending
-
-		jmp .read_word_loop
-
-	.correct_ending:
-		mov byte[rdi + r14], 0	; Append null symbol
-
-		mov rax, rdi			; Insert results
-		mov rdx, r14
-
-		jmp .ending
-
-	.incorrect_ending:
-		xor rax, rax			; Set result to 0
-
-		jmp .ending
-
-	.ending:
-		pop r15		; Restoring r14-r15
-		pop r14
-
-		ret
+    push    r14                        
+    push    r13
+    xor     r14, r14
+    mov     r10, rsi
+    mov     r13, rdi
+    .start:
+        call    read_char    
+        cmp     al, 0x0
+        je      .end                          
+        cmp     al, 0x20        
+        je      .start                             
+        cmp     al, 0x9
+        je      .start
+        cmp     al, 0xA
+        je      .start
+        jmp     .write_char
+    .loop:
+        call    read_char
+        cmp     al, 0x0
+        je      .end
+        cmp     al, 0x20
+        je      .end
+        jmp     .write_char
+    .write_char:
+        mov     byte [r13 + r14], al
+        inc     r14
+        cmp     r14, r10
+        je      .overflow
+        jmp     .loop
+    .end:
+        mov     byte [r13 + r14], 0
+        mov     rax, r13
+        mov     rdx, r14
+        jmp     .return
+    .overflow:
+        xor     rax, rax
+        xor     rdx, rdx
+    .return:
+        pop     r13
+        pop     r14     
+        ret
+ 
 
 ; Принимает указатель на строку, пытается
 ; прочитать из её начала беззнаковое число.
 ; Возвращает в rax: число, rdx : его длину в символах
 ; rdx = 0 если число прочитать не удалось
-; args: rdi = integer string repr address -> returns: rax - number, rdx - count of characters
 parse_uint:
-    xor     rax, rax
+    parse_uint:
     push    r13
     mov     r13, 10
     xor     rax, rax
     xor     rcx, rcx
     xor     rdx, rdx
     xor     rsi, rsi
-    .parse_char:
+    .next_dig:
         mov     sil, [rdi + rcx]
-        cmp     sil, '0'
-        jl      .return
         cmp     sil, '9'
         jg      .return
-        inc     rcx
+        cmp     sil, '0'
+        jl      .return
         sub     sil, '0'
         mul     r13
         add     rax, rsi
-        jmp     .parse_char
+        inc     rcx
+        jmp     .next_dig
     .return:
         mov     rdx, rcx
         pop     r13
         ret
+
+
+
 
 ; Принимает указатель на строку, пытается
 ; прочитать из её начала знаковое число.
 ; Если есть знак, пробелы между ним и числом не разрешены.
 ; Возвращает в rax: число, rdx : его длину в символах (включая знак, если он был) 
 ; rdx = 0 если число прочитать не удалось
-; args: rdi = integer string repr address -> returns: rax - number, rdx - count of characters
 parse_int:
     xor     rax, rax
-    cmp     byte [rdi], 0x2d
-    je      .parse_ng
+    cmp     byte [rdi], '-'
+    je      .negat
     call    parse_uint
     ret
-    .parse_ng:
+    .negat:
         inc     rdi
         call    parse_uint
+        neg     rax
         cmp     rdx, 0
         je      .return
-        neg     rax
         inc     rdx
     .return:
-        ret
+        ret 
 
 ; Принимает указатель на строку, указатель на буфер и длину буфера
 ; Копирует строку в буфер
 ; Возвращает длину строки если она умещается в буфер, иначе 0
-; args: rdi = source address, rsi = destinastion address, rdx = destination size -> returns: Right(rax = destination address) or Left(rax = 0)
 string_copy:
-    push    r12
+    string_copy:
+    push    r10
     xor     rcx, rcx
-    .main_loop:
+    .loop:
         cmp     rcx, rdx
         je      .overflow
-        mov     r12, [rdi + rcx]
-        mov     [rsi, rcx], r12
-        cmp     r12, 0
-        je      .exit
+        mov     r10, [rdi + rcx]
+        mov     [rsi, rcx], r10
+        cmp     r10, 0
+        je      .return
         inc     rcx
-        jmp     .main_loop
+        jmp     .loop
     .overflow:
-        mov     rax, 0
-        jmp     .exit
-    .exit:
-        pop     r12
+        xor     rax, rax
+        jmp     .return
+    .return:
+        pop     r10
         ret
